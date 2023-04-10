@@ -401,8 +401,7 @@ public class APIClient {
                 return badRequest;
             }
             if (self.validateName(api.name, organization)) {
-                BadRequestError badRequest = {body: {code: 90911, message: "API Name - " + api.name + " already exist.", description: "API Name - " + api.name + " already exist."}};
-                return badRequest;
+                return e90911(api.name);
             }
             lock {
                 if (ALLOWED_API_TYPES.indexOf(api.'type) is ()) {
@@ -411,8 +410,7 @@ public class APIClient {
                 }
             }
             if self.validateContextAndVersion(api.context, api.'version, organization) {
-                BadRequestError badRequest = {body: {code: 90911, message: "API Context - " + api.context + " already exist.", description: "API Context " + api.context + " already exist."}};
-                return badRequest;
+                return e90912(api.context);
             }
 
             self.setDefaultOperationsIfNotExist(api);
@@ -701,8 +699,7 @@ public class APIClient {
                         url: <string?>url
                     };
                 } else {
-                    commons:APKError e = error("Sandbox Endpoint Not specified", message = "Endpoint Not specified", description = "Sandbox Endpoint Not specified", code = 90911, statusCode = 400);
-                    return e;
+                    return e90913();
                 }
             }
         }
@@ -723,8 +720,7 @@ public class APIClient {
                         url: <string?>url
                     };
                 } else {
-                    commons:APKError e = error("Production Endpoint Not specified", message = "Endpoint Not specified", description = "Production Endpoint Not specified", code = 90911, statusCode = 400);
-                    return e;
+                    return e90914();
                 }
             }
         }
@@ -789,8 +785,7 @@ public class APIClient {
             }
 
             if (self.validateName(api.name, organization)) {
-                BadRequestError badRequest = {body: {code: 90911, message: "API Name - " + api.name + " already exist.", description: "API Name - " + api.name + " already exist."}};
-                return badRequest;
+                return e90911(api.name);
             }
             lock {
                 if (ALLOWED_API_TYPES.indexOf(api.'type) is ()) {
@@ -799,8 +794,7 @@ public class APIClient {
                 }
             }
             if self.validateContextAndVersion(api.context, api.'version, organization) {
-                BadRequestError badRequest = {body: {code: 90911, message: "API Context - " + api.context + " already exist.", description: "API Context " + api.context + " already exist."}};
-                return badRequest;
+                return e90912(api.context);
             }
             self.setDefaultOperationsIfNotExist(api);
             APIOperations[]? operations = api.operations;
@@ -937,15 +931,12 @@ public class APIClient {
                         model:StatusCause[] 'causes = details.'causes;
                         foreach model:StatusCause 'cause in 'causes {
                             if 'cause.'field == "spec.context" {
-                                commons:APKError badeRequestError = error("Invalid API Context", code = 90911, description = "API Context " + k8sAPI.spec.context + " Invalid", message = "Invalid API context", statusCode = 400);
-                                return badeRequestError;
+                                return e90915(k8sAPI.spec.context);
                             } else if 'cause.'field == "spec.apiDisplayName" {
-                                commons:APKError badeRequestError = error("Invalid API Name", code = 90911, description = "API Name " + k8sAPI.spec.apiDisplayName + " Invalid", message = "Invalid API Name", statusCode = 400);
-                                return badeRequestError;
+                                return e90916(k8sAPI.spec.apiDisplayName);
                             }
                         }
-                        commons:APKError badeRequestError = error("Invalid API Request", code = 90911, description = "Invalid API Request", message = "Invalid API Request", statusCode = 400);
-                        return badeRequestError;
+                        return e90917();
                     }
                     return self.handleK8sTimeout(statusResponse);
                 }
@@ -962,17 +953,13 @@ public class APIClient {
                     if details is model:StatusDetails {
                         model:StatusCause[] 'causes = details.'causes;
                         foreach model:StatusCause 'cause in 'causes {
-                            if 'cause.'field == "spec.context" {
-                                commons:APKError badRequestError = error("Invalid API Context", code = 90911, description = "API Context " + k8sAPI.spec.context + " Invalid", message = "Invalid API context", statusCode = 400);
-                                return badRequestError;
+                            if 'cause.'field == "spec.context" {       
+                                return e90915(k8sAPI.spec.context);
                             } else if 'cause.'field == "spec.apiDisplayName" {
-                                commons:APKError badRequestError = error("Invalid API Name", code = 90911, description = "API Name " + k8sAPI.spec.apiDisplayName + " Invalid", message = "Invalid API Name", statusCode = 400);
-                                return badRequestError;
+                                return e90916(k8sAPI.spec.apiDisplayName);
                             }
                         }
-                        commons:APKError badRequestError = error("Invalid API Request", code = 90911, description = "Invalid API Request", message = "Invalid API Request", statusCode = 400);
-                        return badRequestError;
-
+                        return e90917();
                     }
                     return self.handleK8sTimeout(statusResponse);
                 }
@@ -994,7 +981,7 @@ public class APIClient {
                 model:Status statusResponse = check responsePayLoad.cloneWithType(model:Status);
                 model:StatusDetails? details = statusResponse.details;
                 if details is model:StatusDetails {
-                    return error("Invalid API Request", code = 90911, description = "Invalid API Request", message = "Invalid API Request", statusCode = 400);
+                    return e90917();
                 }
                 return self.handleK8sTimeout(statusResponse);
             }
@@ -1658,12 +1645,14 @@ public class APIClient {
                 return okResponse;
             } else {
                 log:printError("Error while Genereting token for API : " + apiId, generatedToken);
+                // return e90918();
                 InternalServerErrorError internalError = {body: {code: 90911, message: "Error while Generating Token"}};
                 return internalError;
             }
         } else {
             NotFoundError notfound = {body: {code: 909100, message: apiId + "not found."}};
             return notfound;
+            // return e909100(apiId);
         }
     }
 
