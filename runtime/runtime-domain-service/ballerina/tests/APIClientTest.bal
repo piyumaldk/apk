@@ -1942,7 +1942,7 @@ function testDataGeneratedSwaggerDefinition() returns map<[API, string?, json|co
 @test:Config {dataProvider: validateExistenceDataProvider}
 function testValidateAPIExistence(string query, anydata expected) {
     APIClient apiClient = new;
-    test:assertEquals(apiClient.validateAPIExistence(query, organiztion1).toBalString(), expected);
+    test:assertEquals(apiClient.validateAPIExistence(query, organiztion1), expected);
 }
 
 function validateExistenceDataProvider() returns map<[string, anydata]> {
