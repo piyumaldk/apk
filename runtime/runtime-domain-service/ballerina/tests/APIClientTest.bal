@@ -2238,15 +2238,31 @@ function createApiFromServiceDataProvider() returns map<[string, string, [model:
         model:RuntimeAPI mockRuntimeAPIWithAPIRateLimits = getMockRuntimeAPI(apiWithAPIRateLimits, apiUUID, organiztion1, serviceRecord);
         http:Response mockRuntimeResponseWithAPIRateLimits = getMockRuntimeAPIResponse(mockRuntimeAPIWithAPIRateLimits.clone());
         http:Response serviceMappingResponse = getMockServiceMappingResponse(mockServiceMappingRequest.clone());
-        BadRequestError nameAlreadyExistError = {body: {code: 90911, message: "API Name - " + alreadyNameExist.name + " already exist.", description: "API Name - " + alreadyNameExist.name + " already exist."}};
+        commons:APKError nameAlreadyExistError = error commons:APKError(
+            "API Name - " + alreadyNameExist.name + " already exist",
+            code = 90911,
+            message = "API Name - " + alreadyNameExist.name + " already exist",
+            statusCode = 409,
+            description = "API Name - " + alreadyNameExist.name + " already exist"
+        );
         API contextAlreadyExist = {
             name: "PizzaAPI",
             context: "/pizzashack/1.0.0",
             'version: "1.0.0"
         };
-        BadRequestError contextAlreadyExistError = {body: {code: 90911, message: "API Context - " + contextAlreadyExist.context + " already exist.", description: "API Context " + contextAlreadyExist.context + " already exist."}};
-        BadRequestError serviceNotExist = {body: {code: 90913, message: "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found."}};
-
+        commons:APKError contextAlreadyExistError = error commons:APKError(
+           "API Context - " + contextAlreadyExist.context + " already exist",
+           code = 90912,
+           message = "API Context - " + contextAlreadyExist.context + " already exist",
+           statusCode = 409,
+           description = "API Context - " + contextAlreadyExist.context + " already exist"
+        );
+        commons:APKError serviceNotExist = error commons:APKError( "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found",
+            code = 90904,
+            message =  "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found",
+            statusCode = 404,
+            description =  "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found"
+        );
         CreatedAPI createdAPI = {
             body: {
                 id: k8sAPIUUID1,
@@ -4013,13 +4029,25 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
         context: "/pizzaAPI/1.0.0",
         'version: "1.0.0"
     };
-    BadRequestError nameAlreadyExistError = {body: {code: 90911, message: "API Name - " + alreadyNameExist.name + " already exist.", description: "API Name - " + alreadyNameExist.name + " already exist."}};
+    commons:APKError nameAlreadyExistError = error commons:APKError(
+        "API Name - " + alreadyNameExist.name + " already exist",
+        code = 90911,
+        message = "API Name - " + alreadyNameExist.name + " already exist",
+        statusCode = 409,
+        description = "API Name - " + alreadyNameExist.name + " already exist"
+    );
     API contextAlreadyExist = {
         name: "PizzaAPI",
         context: "/pizzashack/1.0.0",
         'version: "1.0.0"
     };
-    BadRequestError contextAlreadyExistError = {body: {code: 90911, message: "API Context - " + contextAlreadyExist.context + " already exist.", description: "API Context " + contextAlreadyExist.context + " already exist."}};
+    commons:APKError contextAlreadyExistError = error commons:APKError(
+        "API Context - " + contextAlreadyExist.context + " already exist",
+        code = 90912,
+        message = "API Context - " + contextAlreadyExist.context + " already exist",
+        statusCode = 409,
+        description = "API Context - " + contextAlreadyExist.context + " already exist"
+    );
     json apiWithOperationPolicies = {
         "name": "PizzaAPI",
         "context": "/pizzaAPI/1.0.0",
@@ -4352,8 +4380,18 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
     model:Httproute prodhttpRouteWithOperationRateLimits = getMockHttpRouteWithOperationRateLimits(api, apiUUID, backenduuid, PRODUCTION_TYPE, organiztion1);
 
     CreatedAPI createdAPI = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z"}};
-    commons:APKError productionEndpointNotSpecifiedError = error("Production Endpoint Not specified", message = "Endpoint Not specified", description = "Production Endpoint Not specified", code = 90911, statusCode = 400);
-    commons:APKError sandboxEndpointNotSpecifiedError = error("Sandbox Endpoint Not specified", message = "Endpoint Not specified", description = "Sandbox Endpoint Not specified", code = 90911, statusCode = 400);
+    commons:APKError productionEndpointNotSpecifiedError = error commons:APKError( "Production endpoint not specified",
+        code = 90914,
+        message = "Production endpoint not specified",
+        statusCode = 406,
+        description = "Production endpoint not specified"
+    );
+    commons:APKError sandboxEndpointNotSpecifiedError = error commons:APKError( "Sandbox endpoint not specified",
+        code = 90913,
+        message = "Sandbox endpoint not specified",
+        statusCode = 406,
+        description = "Sandbox endpoint not specified"
+    ); 
     commons:APKError k8sLevelError = error("Internal Error occured while deploying API", code = 909000, message
         = "Internal Error occured while deploying API", statusCode = 500, description = "Internal Error occured while deploying API", moreInfo = {});
     commons:APKError k8sLevelError1 = error("Internal Server Error", code = 900900, message
