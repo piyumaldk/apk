@@ -528,13 +528,13 @@ public function testGetAPIList(string? query, int 'limit, int offset, string sor
 
 function getApilistDataProvider() returns map<[string?, int, int, string, string, anydata]> {
     commons:APKError badRequestError = error commons:APKError("Invalid Sort By/Sort Order value",
-        code = 90920,
+        code = 909020,
         message = "Invalid Sort By/Sort Order value",
         statusCode = 406,
         description = "Invalid Sort By/Sort Order value"
     );
     commons:APKError badRequest = error commons:APKError("Invalid keyword type1",
-        code = 90919,
+        code = 909019,
         message = "Invalid keyword type1",
         statusCode = 406,
         description = "Invalid keyword type1"
@@ -1962,13 +1962,13 @@ function testValidateAPIExistence(string query, anydata expected) {
 function validateExistenceDataProvider() returns map<[string, anydata]> {
     http:Ok ok = {};
     commons:APKError badRequest = error commons:APKError("Invalid keyword type",
-        code = 90919,
+        code = 909019,
         message = "Invalid keyword type",
         statusCode = 406,
         description = "Invalid keyword type"
     );
     commons:APKError notFound = error commons:APKError( "Context/Name doesn't exist",
-        code = 90902,
+        code = 909002,
         message = "Context/Name doesn't exist",
         statusCode = 404,
         description = "Context/Name doesn't exist"
@@ -2124,7 +2124,7 @@ function createApiFromServiceDataProvider() returns map<[string, string, [model:
             ]
         };
         commons:APKError invalidPolicyNameError = error commons:APKError( "Invalid operation policy name",
-        code = 90910,
+        code = 909010,
         message = "Invalid operation policy name",
         statusCode = 406,
         description = "Invalid operation policy name"
@@ -2223,7 +2223,7 @@ function createApiFromServiceDataProvider() returns map<[string, string, [model:
             }
         };
         commons:APKError bothRateLimitsPresentError = error commons:APKError( "Presence of both resource level and API level rate limits is not allowed",
-            code = 90926,
+            code = 909026,
             message = "Presence of both resource level and API level rate limits is not allowed",
             statusCode = 406,
             description = "Presence of both resource level and API level rate limits is not allowed"
@@ -2274,7 +2274,7 @@ function createApiFromServiceDataProvider() returns map<[string, string, [model:
         http:Response serviceMappingResponse = getMockServiceMappingResponse(mockServiceMappingRequest.clone());
         commons:APKError nameAlreadyExistError = error commons:APKError(
             "API Name - " + alreadyNameExist.name + " already exist",
-            code = 90911,
+            code = 909011,
             message = "API Name - " + alreadyNameExist.name + " already exist",
             statusCode = 409,
             description = "API Name - " + alreadyNameExist.name + " already exist"
@@ -2286,13 +2286,13 @@ function createApiFromServiceDataProvider() returns map<[string, string, [model:
         };
         commons:APKError contextAlreadyExistError = error commons:APKError(
            "API Context - " + contextAlreadyExist.context + " already exist",
-           code = 90912,
+           code = 909012,
            message = "API Context - " + contextAlreadyExist.context + " already exist",
            statusCode = 409,
            description = "API Context - " + contextAlreadyExist.context + " already exist"
         );
         commons:APKError serviceNotExist = error commons:APKError( "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found",
-            code = 90904,
+            code = 909004,
             message =  "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found",
             statusCode = 404,
             description =  "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found"
@@ -4065,7 +4065,7 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
     };
     commons:APKError nameAlreadyExistError = error commons:APKError(
         "API Name - " + alreadyNameExist.name + " already exist",
-        code = 90911,
+        code = 909011,
         message = "API Name - " + alreadyNameExist.name + " already exist",
         statusCode = 409,
         description = "API Name - " + alreadyNameExist.name + " already exist"
@@ -4077,7 +4077,7 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
     };
     commons:APKError contextAlreadyExistError = error commons:APKError(
         "API Context - " + contextAlreadyExist.context + " already exist",
-        code = 90912,
+        code = 909012,
         message = "API Context - " + contextAlreadyExist.context + " already exist",
         statusCode = 409,
         description = "API Context - " + contextAlreadyExist.context + " already exist"
@@ -4233,7 +4233,7 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
         }
     };
     commons:APKError bothPoliciesPresentError = error commons:APKError( "Presence of both resource level and API level operation policies is not allowed",
-        code = 90925,
+        code = 909025,
         message = "Presence of both resource level and API level operation policies is not allowed",
         statusCode = 406,
         description = "Presence of both resource level and API level operation policies is not allowed"
@@ -4265,7 +4265,7 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
         ]
     };
     commons:APKError invalidPolicyNameError = error commons:APKError( "Invalid operation policy name",
-        code = 90910,
+        code = 909010,
         message = "Invalid operation policy name",
         statusCode = 406,
         description = "Invalid operation policy name"
@@ -4297,7 +4297,7 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
         ]
     };
     commons:APKError invalidPolicyParametersError = error commons:APKError( "Invalid parameters provided for policy addHeader",
-        code = 90924,
+        code = 909024,
         message = "Invalid parameters provided for policy addHeader",
         statusCode = 406,
         description = "Invalid parameters provided for policy addHeader"
@@ -4398,7 +4398,7 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
         }
     };
     commons:APKError bothRateLimitsPresentError = error commons:APKError( "Presence of both resource level and API level rate limits is not allowed",
-        code = 90926,
+        code = 909026,
         message = "Presence of both resource level and API level rate limits is not allowed",
         statusCode = 406,
         description = "Presence of both resource level and API level rate limits is not allowed"
@@ -4435,13 +4435,13 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
 
     CreatedAPI createdAPI = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z"}};
     commons:APKError productionEndpointNotSpecifiedError = error commons:APKError( "Production endpoint not specified",
-        code = 90914,
+        code = 909014,
         message = "Production endpoint not specified",
         statusCode = 406,
         description = "Production endpoint not specified"
     );
     commons:APKError sandboxEndpointNotSpecifiedError = error commons:APKError( "Sandbox endpoint not specified",
-        code = 90913,
+        code = 909013,
         message = "Sandbox endpoint not specified",
         statusCode = 406,
         description = "Sandbox endpoint not specified"
@@ -4451,7 +4451,7 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
     commons:APKError k8sLevelError1 = error("Internal Server Error", code = 900900, message
         = "Internal Server Error", statusCode = 500, description = "Internal Server Error", moreInfo = {});
     commons:APKError invalidAPINameError = error commons:APKError("API name PizzaAPI invalid",
-        code = 90916,
+        code = 909016,
         message = "API name PizzaAPI invalid",
         statusCode = 406,
         description = "API name PizzaAPI invalid"
@@ -4942,13 +4942,13 @@ public function testGetMediationPolicyList(string? query, int 'limit, int offset
 
 function getMediationPolicyListDataProvider() returns map<[string?, int, int, string, string, anydata]> {
     commons:APKError badRequestError = error commons:APKError("Invalid Sort By/Sort Order value",
-        code = 90920,
+        code = 909020,
         message = "Invalid Sort By/Sort Order value",
         statusCode = 406,
         description = "Invalid Sort By/Sort Order value"
     );
     commons:APKError badRequest = error commons:APKError("Invalid keyword name1",
-        code = 90919,
+        code = 909019,
         message = "Invalid keyword name1",
         statusCode = 406,
         description = "Invalid keyword name1"
