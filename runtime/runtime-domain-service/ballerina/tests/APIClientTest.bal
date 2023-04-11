@@ -455,18 +455,34 @@ function prefixMatchDataProvider() returns map<[API, model:Endpoint, APIOperatio
 @test:Config {dataProvider: apiDefinitionDataProvider}
 public function testGetAPIDefinitionByID(string apiid, anydata expectedResponse) returns error? {
     APIClient apiclient = new ();
-    http:Response|NotFoundError|PreconditionFailedError|InternalServerErrorError aPIDefinitionByID = apiclient.getAPIDefinitionByID(apiid, organiztion1);
+    http:Response|NotFoundError|PreconditionFailedError|InternalServerErrorError|commons:APKError aPIDefinitionByID = apiclient.getAPIDefinitionByID(apiid, organiztion1);
     if aPIDefinitionByID is http:Response {
         json jsonPayload = check aPIDefinitionByID.getJsonPayload();
         test:assertEquals(jsonPayload.toBalString(), expectedResponse);
     } else {
-        test:assertEquals(aPIDefinitionByID.toBalString(), expectedResponse);
+        if aPIDefinitionByID is any {
+            test:assertEquals(aPIDefinitionByID.toBalString(), expectedResponse);
+        }
+        else {
+            test:assertEquals(aPIDefinitionByID.toBalString(), expectedResponse);
+        }
     }
 }
 
 public function apiDefinitionDataProvider() returns map<[string, anydata]> {
-    NotFoundError notfound = {body: {code: 909100, message: "c5ab2423-b9e8-432b-92e8-35e6907ed5e9 not found."}};
-    InternalServerErrorError internalError = {body: {code: 909000, message: "Internal Error Occured while retrieving definition"}};
+    commons:APKError notfound = error commons:APKError( "c5ab2423-b9e8-432b-92e8-35e6907ed5e9 not found",
+        code = 909001,
+        message = "c5ab2423-b9e8-432b-92e8-35e6907ed5e9 not found",
+        statusCode = 404,
+        description = "c5ab2423-b9e8-432b-92e8-35e6907ed5e9 not found"
+    );
+    commons:APKError internalError = error commons:APKError("Internal error occured while retrieving definition", 
+        error("Internal error occured while retrieving definition"),
+        code = 909023,
+        message = "Internal error occured while retrieving definition",
+        statusCode = 500,
+        description = "Internal error occured while retrieving definition"
+    ); 
 
     map<[string, anydata]> dataSet = {
         "1": ["c5ab2423-b9e8-432b-92e8-35e6907ed5e8", mockOpenAPIJson().toBalString()],
@@ -507,7 +523,12 @@ public function apiByIdDataProvider() returns map<[string, commons:Organization,
         ],
         createdTime: "2022-12-13T09:45:47Z"
     };
-    NotFoundError notfound = {body: {code: 909100, message: "c5ab2423-b9e8-432b-92e8-35e6907ed5e9 not found."}};
+    commons:APKError notfound = error commons:APKError( "c5ab2423-b9e8-432b-92e8-35e6907ed5e9 not found",
+        code = 909001,
+        message = "c5ab2423-b9e8-432b-92e8-35e6907ed5e9 not found",
+        statusCode = 404,
+        description = "c5ab2423-b9e8-432b-92e8-35e6907ed5e9 not found"
+    ); 
     map<[string, commons:Organization, anydata]> dataset = {
         "1": ["c5ab2423-b9e8-432b-92e8-35e6907ed5e8", organiztion1, api1.toBalString()],
         "2": ["c5ab2423-b9e8-432b-92e8-35e6907ed5e9", organiztion1, notfound.toBalString()]
@@ -527,9 +548,18 @@ public function testGetAPIList(string? query, int 'limit, int offset, string sor
 }
 
 function getApilistDataProvider() returns map<[string?, int, int, string, string, anydata]> {
-    BadRequestError badRequestError = {"body": {"code": 90912, "message": "Invalid Sort By/Sort Order Value "}};
-    BadRequestError badRequest = {body: {code: 90912, message: "Invalid KeyWord type1"}};
-
+    commons:APKError badRequestError = error commons:APKError("Invalid Sort By/Sort Order value",
+        code = 909020,
+        message = "Invalid Sort By/Sort Order value",
+        statusCode = 406,
+        description = "Invalid Sort By/Sort Order value"
+    );
+    commons:APKError badRequest = error commons:APKError("Invalid keyword type1",
+        code = 909019,
+        message = "Invalid keyword type1",
+        statusCode = 406,
+        description = "Invalid keyword type1"
+    );
     map<[string?, int, int, string, string, anydata]> dataSet = {
         "1": [
             (),
@@ -1964,13 +1994,28 @@ function testDataGeneratedSwaggerDefinition() returns map<[API, string?, json|co
 @test:Config {dataProvider: validateExistenceDataProvider}
 function testValidateAPIExistence(string query, anydata expected) {
     APIClient apiClient = new;
-    test:assertEquals(apiClient.validateAPIExistence(query, organiztion1).toBalString(), expected);
+    any|error validateAPIExistence = apiClient.validateAPIExistence(query, organiztion1);
+    if validateAPIExistence is any {
+        test:assertEquals(validateAPIExistence.toBalString(), expected);
+    } else {
+        test:assertEquals(validateAPIExistence.toBalString(), expected);
+    }
 }
 
 function validateExistenceDataProvider() returns map<[string, anydata]> {
     http:Ok ok = {};
-    BadRequestError badRequest = {body: {code: 90912, message: "Invalid KeyWord type"}};
-    NotFoundError notFound = {body: {code: 900914, message: "context/name doesn't exist"}};
+    commons:APKError badRequest = error commons:APKError("Invalid keyword type",
+        code = 909019,
+        message = "Invalid keyword type",
+        statusCode = 406,
+        description = "Invalid keyword type"
+    );
+    commons:APKError notFound = error commons:APKError( "Context/Name doesn't exist",
+        code = 909002,
+        message = "Context/Name doesn't exist",
+        statusCode = 404,
+        description = "Context/Name doesn't exist"
+    ); 
     map<[string, anydata]> data = {
         "1": ["name:pizzashackAPI", ok.toBalString()],
         "2": ["name:mockapi", notFound.toBalString()],
@@ -2122,7 +2167,12 @@ function createApiFromServiceDataProvider() returns map<[string, string, [model:
                 }
             ]
         };
-        BadRequestError invalidPolicyNameError = {body: {code: 90915, message: "Invalid operation policy name"}};
+        commons:APKError invalidPolicyNameError = error commons:APKError( "Invalid operation policy name",
+        code = 909010,
+        message = "Invalid operation policy name",
+        statusCode = 406,
+        description = "Invalid operation policy name"
+    );
         API apiWithOperationRateLimits = {
             "name": "PizzaAPI",
             "context": "/pizzaAPI/1.0.0",
@@ -2216,7 +2266,12 @@ function createApiFromServiceDataProvider() returns map<[string, string, [model:
                 "unit": "Minute"
             }
         };
-        BadRequestError bothRateLimitsPresentError = {body: {code: 90918, message: "Presence of both resource level and API level rate limits is not allowed"}};
+        commons:APKError bothRateLimitsPresentError = error commons:APKError( "Presence of both resource level and API level rate limits is not allowed",
+            code = 909026,
+            message = "Presence of both resource level and API level rate limits is not allowed",
+            statusCode = 406,
+            description = "Presence of both resource level and API level rate limits is not allowed"
+        );
         string apiUUID = getUniqueIdForAPI(api.name, api.'version, organiztion1);
         model:ConfigMap configmap = check getMockConfigMap1(apiUUID, api);
         http:Response mockConfigMapResponse = getMockConfigMapResponse(configmap.clone());
@@ -2261,15 +2316,31 @@ function createApiFromServiceDataProvider() returns map<[string, string, [model:
         model:RuntimeAPI mockRuntimeAPIWithAPIRateLimits = getMockRuntimeAPI(apiWithAPIRateLimits, apiUUID, organiztion1, serviceRecord);
         http:Response mockRuntimeResponseWithAPIRateLimits = getMockRuntimeAPIResponse(mockRuntimeAPIWithAPIRateLimits.clone());
         http:Response serviceMappingResponse = getMockServiceMappingResponse(mockServiceMappingRequest.clone());
-        BadRequestError nameAlreadyExistError = {body: {code: 90911, message: "API Name - " + alreadyNameExist.name + " already exist.", description: "API Name - " + alreadyNameExist.name + " already exist."}};
+        commons:APKError nameAlreadyExistError = error commons:APKError(
+            "API Name - " + alreadyNameExist.name + " already exist",
+            code = 909011,
+            message = "API Name - " + alreadyNameExist.name + " already exist",
+            statusCode = 409,
+            description = "API Name - " + alreadyNameExist.name + " already exist"
+        );
         API contextAlreadyExist = {
             name: "PizzaAPI",
             context: "/pizzashack/1.0.0",
             'version: "1.0.0"
         };
-        BadRequestError contextAlreadyExistError = {body: {code: 90911, message: "API Context - " + contextAlreadyExist.context + " already exist.", description: "API Context " + contextAlreadyExist.context + " already exist."}};
-        BadRequestError serviceNotExist = {body: {code: 90913, message: "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found."}};
-
+        commons:APKError contextAlreadyExistError = error commons:APKError(
+           "API Context - " + contextAlreadyExist.context + " already exist",
+           code = 909012,
+           message = "API Context - " + contextAlreadyExist.context + " already exist",
+           statusCode = 409,
+           description = "API Context - " + contextAlreadyExist.context + " already exist"
+        );
+        commons:APKError serviceNotExist = error commons:APKError( "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found",
+            code = 909004,
+            message =  "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found",
+            statusCode = 404,
+            description =  "Service from 275b00d1-722c-4df2-b65a-9b14677abe4a not found"
+        );
         CreatedAPI createdAPI = {
             body: {
                 id: k8sAPIUUID1,
@@ -4047,13 +4118,25 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
             context: "/pizzaAPI/1.0.0",
             'version: "1.0.0"
         };
-        BadRequestError nameAlreadyExistError = {body: {code: 90911, message: "API Name - " + alreadyNameExist.name + " already exist.", description: "API Name - " + alreadyNameExist.name + " already exist."}};
+        commons:APKError nameAlreadyExistError = error commons:APKError(
+            "API Name - " + alreadyNameExist.name + " already exist",
+            code = 909011,
+            message = "API Name - " + alreadyNameExist.name + " already exist",
+            statusCode = 409,
+            description = "API Name - " + alreadyNameExist.name + " already exist"
+        );
         API contextAlreadyExist = {
             name: "PizzaAPI",
             context: "/pizzashack/1.0.0",
             'version: "1.0.0"
         };
-        BadRequestError contextAlreadyExistError = {body: {code: 90911, message: "API Context - " + contextAlreadyExist.context + " already exist.", description: "API Context " + contextAlreadyExist.context + " already exist."}};
+        commons:APKError contextAlreadyExistError = error commons:APKError(
+            "API Context - " + contextAlreadyExist.context + " already exist",
+            code = 909012,
+            message = "API Context - " + contextAlreadyExist.context + " already exist",
+            statusCode = 409,
+            description = "API Context - " + contextAlreadyExist.context + " already exist"
+        );
         json apiWithOperationPolicies = {
             "name": "PizzaAPI",
             "context": "/pizzaAPI/1.0.0",
@@ -4204,7 +4287,12 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
                 ]
             }
         };
-        BadRequestError bothPoliciesPresentError = {body: {code: 90917, message: "Presence of both resource level and API level operation policies is not allowed"}};
+        commons:APKError bothPoliciesPresentError = error commons:APKError( "Presence of both resource level and API level operation policies is not allowed",
+            code = 909025,
+            message = "Presence of both resource level and API level operation policies is not allowed",
+            statusCode = 406,
+            description = "Presence of both resource level and API level operation policies is not allowed"
+        ); 
         json apiWithInvalidPolicyName = {
             "name": "PizzaAPIOps",
             "context": "/pizzaAPIOps/1.0.0",
@@ -4231,7 +4319,12 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
                 }
             ]
         };
-        BadRequestError invalidPolicyNameError = {body: {code: 90915, message: "Invalid operation policy name"}};
+        commons:APKError invalidPolicyNameError = error commons:APKError( "Invalid operation policy name",
+            code = 909010,
+            message = "Invalid operation policy name",
+            statusCode = 406,
+            description = "Invalid operation policy name"
+        );
         json apiWithInvalidPolicyParameters = {
             "name": "PizzaAPIOps",
             "context": "/pizzaAPIOps/1.0.0",
@@ -4258,7 +4351,12 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
                 }
             ]
         };
-        BadRequestError invalidPolicyParametersError = {body: {code: 90916, message: "Invalid parameters provided for policy " + "addHeader"}};
+        commons:APKError invalidPolicyParametersError = error commons:APKError( "Invalid parameters provided for policy addHeader",
+            code = 909024,
+            message = "Invalid parameters provided for policy addHeader",
+            statusCode = 406,
+            description = "Invalid parameters provided for policy addHeader"
+        );
         API apiWithOperationRateLimits = {
             "name": "PizzaAPI",
             "context": "/pizzaAPI/1.0.0",
@@ -4354,7 +4452,12 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
                 "unit": "Minute"
             }
         };
-        BadRequestError bothRateLimitsPresentError = {body: {code: 90918, message: "Presence of both resource level and API level rate limits is not allowed"}};
+        commons:APKError bothRateLimitsPresentError = error commons:APKError( "Presence of both resource level and API level rate limits is not allowed",
+        code = 909026,
+        message = "Presence of both resource level and API level rate limits is not allowed",
+        statusCode = 406,
+        description = "Presence of both resource level and API level rate limits is not allowed"
+    );
         string apiUUID = getUniqueIdForAPI(api.name, api.'version, organiztion1);
         string backenduuid = getBackendServiceUid(api, (), PRODUCTION_TYPE, organiztion1);
         string backenduuid1 = getBackendServiceUid(api, (), SANDBOX_TYPE, organiztion1);
@@ -4386,20 +4489,29 @@ function createAPIDataProvider() returns map<[string, string, API, model:ConfigM
         model:Httproute prodhttpRouteWithOperationRateLimits = getMockHttpRouteWithOperationRateLimits(api, apiUUID, backenduuid, PRODUCTION_TYPE, organiztion1);
         string locationUrl = runtimeConfiguration.baseURl + "/apis/" + k8sapiUUID;
 
-        CreatedAPI createdAPI = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z", endpointConfig: {"production_endpoints":{"url":"https://localhost"}}, operations: [{"target":"/*","verb":"GET","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PUT","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"POST","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"DELETE","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PATCH","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}}]}, headers: {location:locationUrl}};
-        CreatedAPI createdSandboxOnlyAPI = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z", endpointConfig: {"sandbox_endpoints":{"url":"https://localhost"}}, operations: [{"target":"/*","verb":"GET","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PUT","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"POST","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"DELETE","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PATCH","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}}]}, headers: {location:locationUrl}};
-        CreatedAPI CreatedAPIWithOperationPolicies = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z", endpointConfig: {"production_endpoints":{"url":"https://localhost"}}, operations: [{"target":"/*","verb":"GET","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[{"policyName":"addHeader","policyVersion":"v1","parameters":{"headerName":"customadd","headerValue":"customvalue"}}],"response":[{"policyName":"removeHeader","policyVersion":"v1","parameters":{"headerName":"content-length"}}]}},{"target":"/*","verb":"PUT","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"POST","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"DELETE","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PATCH","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}}]}, headers: {location:locationUrl}};
-        CreatedAPI CreatedAPIWithAPIPolicies = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z", endpointConfig: {"production_endpoints":{"url":"https://localhost"}}, operations: [{"target":"/*","verb":"GET","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PUT","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"POST","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"DELETE","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PATCH","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}}], apiPolicies: {"request":[{"policyName":"addHeader","policyVersion":"v1","parameters":{"headerName":"customadd","headerValue":"customvalue"}}],"response":[{"policyName":"removeHeader","policyVersion":"v1","parameters":{"headerName":"content-length"}}]}}, headers: {location:locationUrl}};
-        CreatedAPI CreatedAPIWithOperationRateLimits = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z", endpointConfig: {"production_endpoints":{"url":"https://localhost"}}, operations: [{"target":"/*","verb":"GET","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]},"operationRateLimit":{"requestsPerUnit":10,"unit":"Minute"}},{"target":"/*","verb":"PUT","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"POST","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"DELETE","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PATCH","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}}]}, headers: {location:locationUrl}};
-        CreatedAPI CreatedAPIWithAPIRateLimits = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z", endpointConfig: {"production_endpoints":{"url":"https://localhost"}}, operations: [{"target":"/*","verb":"GET","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PUT","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"POST","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"DELETE","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}},{"target":"/*","verb":"PATCH","authTypeEnabled":true,"scopes":[],"operationPolicies":{"request":[],"response":[]}}], apiRateLimit: {"requestsPerUnit":10,"unit":"Minute"}}, headers: {location:locationUrl}};
-
-        commons:APKError productionEndpointNotSpecifiedError = error("Production Endpoint Not specified", message = "Endpoint Not specified", description = "Production Endpoint Not specified", code = 90911, statusCode = 400);
-        commons:APKError sandboxEndpointNotSpecifiedError = error("Sandbox Endpoint Not specified", message = "Endpoint Not specified", description = "Sandbox Endpoint Not specified", code = 90911, statusCode = 400);
-        commons:APKError k8sLevelError = error("Internal Error occured while deploying API", code = 909000, message
-        = "Internal Error occured while deploying API", statusCode = 500, description = "Internal Error occured while deploying API", moreInfo = {});
+    CreatedAPI createdAPI = {body: {name: "PizzaAPI", context: "/pizzaAPI/1.0.0", 'version: "1.0.0", id: k8sapiUUID, createdTime: "2023-01-17T11:23:49Z"}};
+    commons:APKError productionEndpointNotSpecifiedError = error commons:APKError( "Production endpoint not specified",
+        code = 909014,
+        message = "Production endpoint not specified",
+        statusCode = 406,
+        description = "Production endpoint not specified"
+    );
+    commons:APKError sandboxEndpointNotSpecifiedError = error commons:APKError( "Sandbox endpoint not specified",
+        code = 909013,
+        message = "Sandbox endpoint not specified",
+        statusCode = 406,
+        description = "Sandbox endpoint not specified"
+    ); 
+    commons:APKError k8sLevelError = error("Internal error occured while deploying API", code = 909028, message
+        = "Internal error occured while deploying API", statusCode = 500, description = "Internal error occured while deploying API", moreInfo = {});
         commons:APKError k8sLevelError1 = error("Internal Server Error", code = 900900, message
         = "Internal Server Error", statusCode = 500, description = "Internal Server Error", moreInfo = {});
-        commons:APKError invalidAPINameError = error("Invalid API Name", code = 90911, message = "Invalid API Name", statusCode = 400, description = "API Name PizzaAPI Invalid", moreInfo = {});
+    commons:APKError invalidAPINameError = error commons:APKError("API name PizzaAPI invalid",
+        code = 909016,
+        message = "API name PizzaAPI invalid",
+        statusCode = 406,
+        description = "API name PizzaAPI invalid"
+    );
         map<[string, string, API, model:ConfigMap,
     any, model:Httproute|(), any, model:Httproute|(),
     any, [model:Backend, any][], model:API, any, model:RuntimeAPI, any,
@@ -4865,7 +4977,12 @@ public function mediationPolicyByIdDataProvider() returns map<[string, commons:O
             }
         ]
     };
-    NotFoundError notfound = {body: {code: 909100, message: "6 not found."}};
+    commons:APKError notfound = error commons:APKError( "6 not found",
+        code = 909001,
+        message = "6 not found",
+        statusCode = 404,
+        description = "6 not found"
+    ); 
     map<[string, commons:Organization, anydata]> dataset = {
         "1": ["1", organiztion1, mediationPolicy1.toBalString()],
         "2": ["6", organiztion1, notfound.toBalString()]
@@ -4885,9 +5002,18 @@ public function testGetMediationPolicyList(string? query, int 'limit, int offset
 }
 
 function getMediationPolicyListDataProvider() returns map<[string?, int, int, string, string, anydata]> {
-    BadRequestError badRequestError = {"body": {"code": 90912, "message": "Invalid Sort By/Sort Order Value "}};
-    BadRequestError badRequest = {body: {code: 90912, message: "Invalid KeyWord name1"}};
-
+    commons:APKError badRequestError = error commons:APKError("Invalid Sort By/Sort Order value",
+        code = 909020,
+        message = "Invalid Sort By/Sort Order value",
+        statusCode = 406,
+        description = "Invalid Sort By/Sort Order value"
+    );
+    commons:APKError badRequest = error commons:APKError("Invalid keyword name1",
+        code = 909019,
+        message = "Invalid keyword name1",
+        statusCode = 406,
+        description = "Invalid keyword name1"
+    );
     map<[string?, int, int, string, string, anydata]> dataSet = {
         "1": [
             (),

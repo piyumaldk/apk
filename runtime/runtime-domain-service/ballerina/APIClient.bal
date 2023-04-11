@@ -39,7 +39,7 @@ import wso2/apk_common_lib as commons;
 
 public class APIClient {
 
-    public isolated function getAPIDefinitionByID(string id, commons:Organization organization) returns http:Response|NotFoundError|PreconditionFailedError|InternalServerErrorError {
+    public isolated function getAPIDefinitionByID(string id, commons:Organization organization) returns http:Response|commons:APKError {
         model:API? api = getAPI(id, organization);
         if api is model:API {
             json|error definition = self.getDefinition(api);
@@ -50,12 +50,10 @@ public class APIClient {
                 return response;
             } else {
                 log:printError("Error while reading definition:", definition);
-                InternalServerErrorError internalError = {body: {code: 909000, message: "Internal Error Occured while retrieving definition"}};
-                return internalError;
+                return e909023(e = error("Internal error occured while retrieving definition"));
             }
         }
-        NotFoundError notfound = {body: {code: 909100, message: id + " not found."}};
-        return notfound;
+        return e909001(id);
     }
 
     private isolated function getDefinition(model:API api) returns json|commons:APKError {
@@ -70,10 +68,8 @@ public class APIClient {
             // definitionFileRef not specified or empty. definitionfile
             return self.retrieveDefaultDefinition(api);
         } on fail var e {
-            string message = "Internal Error occured while retrieving api Definition";
-            return error(message, e, message = message, description = message, code = 909000, statusCode = 500);
+            return e909023(e);
         }
-
     }
     private isolated function getDefinitionFromConfigMap(model:ConfigMap configmap) returns json|error? {
         map<string>? binaryData = configmap.binaryData;
@@ -125,11 +121,10 @@ public class APIClient {
                     }
                 }
             } on fail var e {
-                return error("Error while retrieving API", e, message = "Error while retrieving API", description = "Error while retrieving API", code = 909000, statusCode = 500);
+                return e909027(e);
             }
         }
-        NotFoundError notfound = {body: {code: 909100, message: id + " not found."}};
-        return notfound;
+        return e909001(id);
     }
 
     //Delete APIs deployed in a namespace by APIId.
@@ -184,7 +179,7 @@ public class APIClient {
             }
         } on fail var e {
             log:printError("Error occured deleting httproutes", e);
-            return error("Error occured deleting httproutes", message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured deleting httproutes", e);
         }
     }
     private isolated function deleteInternalAPI(string k8sAPIName, string apiNameSpace) returns commons:APKError? {
@@ -200,7 +195,7 @@ public class APIClient {
             }
         } on fail var e {
             log:printError("Error occured deleting Internal API", e);
-            return error("Error occured deleting servicemapping", message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured deleting servicemapping", e);
         }
     }
     private isolated function deleteBackends(model:API api, commons:Organization organization) returns commons:APKError? {
@@ -223,7 +218,7 @@ public class APIClient {
             }
         } on fail var e {
             log:printError("Error occured deleting servicemapping", e);
-            return error("Error occured deleting servicemapping", message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured deleting servicemapping", e);
         }
     }
 
@@ -247,7 +242,7 @@ public class APIClient {
             }
         } on fail var e {
             log:printError("Error occured deleting servicemapping", e);
-            return error("Error occured deleting servicemapping", message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured deleting servicemapping", e);
         }
     }
     private isolated function deleteScopeCrsForAPI(model:API api, commons:Organization organization) returns commons:APKError? {
@@ -270,7 +265,7 @@ public class APIClient {
             }
         } on fail var e {
             log:printError("Error occured deleting scope", e);
-            return error("Error occured deleting scopes", message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured deleting scope", e);
         }
     }
 
@@ -289,7 +284,7 @@ public class APIClient {
             API convertedModel = check convertK8sAPItoAPI(api, true);
             apilist.push(convertedModel);
         } on fail var e {
-            return error("Error occured while getting API list", e, message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured while getting API list", e);
         }
         if query is string && query.toString().trim().length() > 0 {
             return self.filterAPISBasedOnQuery(apilist, query, 'limit, offset, sortBy, sortOrder);
@@ -297,7 +292,7 @@ public class APIClient {
             return self.filterAPIS(apilist, 'limit, offset, sortBy, sortOrder, query.toString().trim());
         }
     }
-    private isolated function filterAPISBasedOnQuery(API[] apilist, string query, int 'limit, int offset, string sortBy, string sortOrder) returns APIList|BadRequestError {
+    private isolated function filterAPISBasedOnQuery(API[] apilist, string query, int 'limit, int offset, string sortBy, string sortOrder) returns APIList|commons:APKError {
         API[] filteredList = [];
         if query.length() > 0 {
             int? semiCollonIndex = string:indexOf(query, ":", 0);
@@ -318,8 +313,7 @@ public class APIClient {
                         }
                     }
                 } else {
-                    BadRequestError badRequest = {body: {code: 90912, message: "Invalid KeyWord " + keyWord}};
-                    return badRequest;
+                    return e909019(keyWord);
                 }
             } else {
                 string keyWordValue = query + "|\\w+" + query + "\\w+" + "|" + query + "\\w+" + "|\\w+" + query;
@@ -336,7 +330,7 @@ public class APIClient {
         }
         return self.filterAPIS(filteredList, 'limit, offset, sortBy, sortOrder, query);
     }
-    private isolated function filterAPIS(API[] apiList, int 'limit, int offset, string sortBy, string sortOrder, string query) returns APIList|BadRequestError {
+    private isolated function filterAPIS(API[] apiList, int 'limit, int offset, string sortBy, string sortOrder, string query) returns APIList|commons:APKError {
         API[] clonedAPIList = apiList.clone();
         API[] sortedAPIS = [];
         if sortBy == SORT_BY_API_NAME && sortOrder == SORT_ORDER_ASC {
@@ -356,8 +350,7 @@ public class APIClient {
                 order by api.createdTime descending
                 select api;
         } else {
-            BadRequestError badRequest = {body: {code: 90912, message: "Invalid Sort By/Sort Order Value "}};
-            return badRequest;
+            return e909020();
         }
         API[] limitSet = [];
         if sortedAPIS.length() > offset {
@@ -370,8 +363,7 @@ public class APIClient {
         string previousAPIList = "";
         string nextAPIList = "";
         if offset > sortedAPIS.length() {
-            BadRequestError badRequest = {body: {code: 90912, message: "Invalid Value for Offset"}};
-            return badRequest;
+            return e909039();
         } else if offset > 'limit {
             previousAPIList = self.getPaginatedURL('limit, offset - 'limit, sortBy, sortOrder, query);
         } else if offset > 0 {
@@ -401,8 +393,7 @@ public class APIClient {
                 return badRequest;
             }
             if (self.validateName(api.name, organization)) {
-                BadRequestError badRequest = {body: {code: 90911, message: "API Name - " + api.name + " already exist.", description: "API Name - " + api.name + " already exist."}};
-                return badRequest;
+                return e909011(api.name);
             }
             lock {
                 if (ALLOWED_API_TYPES.indexOf(api.'type) is ()) {
@@ -411,8 +402,7 @@ public class APIClient {
                 }
             }
             if self.validateContextAndVersion(api.context, api.'version, organization) {
-                BadRequestError badRequest = {body: {code: 90911, message: "API Context - " + api.context + " already exist.", description: "API Context " + api.context + " already exist."}};
-                return badRequest;
+                return e909012(api.context);
             }
 
             self.setDefaultOperationsIfNotExist(api);
@@ -421,22 +411,20 @@ public class APIClient {
             APIOperations[]? operations = api.operations;
             if operations is APIOperations[] {
                 if operations.length() == 0 {
-                    BadRequestError badRequestError = {body: {code: 90912, message: "Atleast one operation need to specified"}};
-                    return badRequestError;
+                    return e909021();
                 }
                 // Validating operation policies.
-                BadRequestError|() badRequestError = self.validateOperationPolicies(api.apiPolicies, operations, organization);
-                if (badRequestError is BadRequestError) {
-                    return badRequestError;
+                commons:APKError|() apkError = self.validateOperationPolicies(api.apiPolicies, operations, organization);
+                if (apkError is commons:APKError) {
+                    return apkError;
                 }
                 // Validating rate limit.
-                BadRequestError|() invalidRateLimitError = self.validateRateLimit(api.apiRateLimit, operations);
-                if (invalidRateLimitError is BadRequestError) {
+                commons:APKError|() invalidRateLimitError = self.validateRateLimit(api.apiRateLimit, operations);
+                if (invalidRateLimitError is commons:APKError) {
                     return invalidRateLimitError;
                 }
             } else {
-                BadRequestError badRequestError = {body: {code: 90912, message: "Atleast one operation need to specified"}};
-                return badRequestError;
+                return e909021();
             }
             record {}? endpointConfig = api.endpointConfig;
             map<model:Endpoint|()> createdEndpoints = {};
@@ -459,24 +447,23 @@ public class APIClient {
                 return e;
             }
             log:printError("Internal Error occured", e);
-            return error("Internal Error occured", code = 909000, message = "Internal Error occured", description = "Internal Error occured", statusCode = 500);
+            return e909022("Internal Error occured", e);
         }
     }
 
-    isolated function validateOperationPolicies(APIOperationPolicies? apiPolicies, APIOperations[] operations, commons:Organization organization) returns BadRequestError|() {
+    isolated function validateOperationPolicies(APIOperationPolicies? apiPolicies, APIOperations[] operations, commons:Organization organization) returns commons:APKError|() {
         foreach APIOperations operation in operations {
             APIOperationPolicies? operationPolicies = operation.operationPolicies;
             if (!self.isPolicyEmpty(operationPolicies)) {
                 if (self.isPolicyEmpty(apiPolicies)) {
                     // Validating resource level operation policy data
-                    BadRequestError|() badRequestError = self.validateOperationPolicyData(operationPolicies, organization);
-                    if (badRequestError is BadRequestError) {
-                        return badRequestError;
+                    commons:APKError|() apkError = self.validateOperationPolicyData(operationPolicies, organization);
+                    if (apkError is commons:APKError) {
+                        return apkError;
                     }
                 } else {
                     // Presence of both resource level and API level operation policies.
-                    BadRequestError badRequestError = {body: {code: 90917, message: "Presence of both resource level and API level operation policies is not allowed"}};
-                    return badRequestError;
+                    return e909025();
                 }
             }
         }
@@ -491,21 +478,21 @@ public class APIClient {
         return policies == () || policies.length() == 0;
     }
 
-    isolated function validateOperationPolicyData(APIOperationPolicies? operationPolicies, commons:Organization organization) returns BadRequestError|() {
+    isolated function validateOperationPolicyData(APIOperationPolicies? operationPolicies, commons:Organization organization) returns commons:APKError|() {
         if operationPolicies is APIOperationPolicies {
             // Validating request operation policy data.
-            BadRequestError|() badRequestError = self.validatePolicyDetails(operationPolicies.request, organization);
-            if (badRequestError == ()) {
+            commons:APKError|() apkError = self.validatePolicyDetails(operationPolicies.request, organization);
+            if (apkError == ()) {
                 // Validating response operation policy data.
                 return self.validatePolicyDetails(operationPolicies.response, organization);
             } else {
-                return badRequestError;
+                return apkError;
             }
         }
         return ();
     }
 
-    isolated function validatePolicyDetails(OperationPolicy[]? policyData, commons:Organization organization) returns BadRequestError|() {
+    isolated function validatePolicyDetails(OperationPolicy[]? policyData, commons:Organization organization) returns commons:APKError|() {
         if (policyData is OperationPolicy[]) {
             foreach OperationPolicy policy in policyData {
                 string policyName = policy.policyName;
@@ -531,14 +518,12 @@ public class APIClient {
 
                             if (allowedPolicyAttributes != receivedPolicyParameters) {
                                 // Allowed policy attributes does not match with the parameters provided
-                                BadRequestError badRequestError = {body: {code: 90916, message: "Invalid parameters provided for policy " + policyName}};
-                                return badRequestError;
+                                return e909024(policyName);
                             }
                         }
                     } else {
                         // Invalid operation policy name.
-                        BadRequestError badRequestError = {body: {code: 90915, message: "Invalid operation policy name"}};
-                        return badRequestError;
+                        return e909010();
                     }
                 }
             }
@@ -546,7 +531,7 @@ public class APIClient {
         return ();
     }
 
-    isolated function validateRateLimit(APIRateLimit? apiRateLimit, APIOperations[] operations) returns BadRequestError|() {
+    isolated function validateRateLimit(APIRateLimit? apiRateLimit, APIOperations[] operations) returns commons:APKError|() {
         if (apiRateLimit == ()) {
             return ();
         } else {
@@ -554,13 +539,7 @@ public class APIClient {
                 APIRateLimit? operationRateLimit = operation.operationRateLimit;
                 if (operationRateLimit != ()) {
                     // Presence of both resource level and API level rate limits.
-                    BadRequestError badRequestError = {
-                        body: {
-                            code: 90918,
-                            message: "Presence of both resource level and API level rate limits is not allowed"
-                        }
-                    };
-                    return badRequestError;
+                    return e909026();
                 }
             }
         }
@@ -701,8 +680,7 @@ public class APIClient {
                         url: <string?>url
                     };
                 } else {
-                    commons:APKError e = error("Sandbox Endpoint Not specified", message = "Endpoint Not specified", description = "Sandbox Endpoint Not specified", code = 90911, statusCode = 400);
-                    return e;
+                    return e909013();
                 }
             }
         }
@@ -723,8 +701,7 @@ public class APIClient {
                         url: <string?>url
                     };
                 } else {
-                    commons:APKError e = error("Production Endpoint Not specified", message = "Endpoint Not specified", description = "Production Endpoint Not specified", code = 90911, statusCode = 400);
-                    return e;
+                    return e909014();
                 }
             }
         }
@@ -789,8 +766,7 @@ public class APIClient {
             }
 
             if (self.validateName(api.name, organization)) {
-                BadRequestError badRequest = {body: {code: 90911, message: "API Name - " + api.name + " already exist.", description: "API Name - " + api.name + " already exist."}};
-                return badRequest;
+                return e909011(api.name);
             }
             lock {
                 if (ALLOWED_API_TYPES.indexOf(api.'type) is ()) {
@@ -799,20 +775,19 @@ public class APIClient {
                 }
             }
             if self.validateContextAndVersion(api.context, api.'version, organization) {
-                BadRequestError badRequest = {body: {code: 90911, message: "API Context - " + api.context + " already exist.", description: "API Context " + api.context + " already exist."}};
-                return badRequest;
+                return e909012(api.context);
             }
             self.setDefaultOperationsIfNotExist(api);
             APIOperations[]? operations = api.operations;
             if operations is APIOperations[] {
                 // Validating operation policies.
-                BadRequestError|() badRequestError = self.validateOperationPolicies(api.apiPolicies, operations, organization);
-                if (badRequestError is BadRequestError) {
-                    return badRequestError;
+                commons:APKError|() apkError = self.validateOperationPolicies(api.apiPolicies, operations, organization);
+                if (apkError is commons:APKError) {
+                    return apkError;
                 }
                 // Validating rate limit.
-                BadRequestError|() invalidRateLimitError = self.validateRateLimit(api.apiRateLimit, operations);
-                if (invalidRateLimitError is BadRequestError) {
+                commons:APKError|() invalidRateLimitError = self.validateRateLimit(api.apiRateLimit, operations);
+                if (invalidRateLimitError is commons:APKError) {
                     return invalidRateLimitError;
                 }
             }
@@ -839,12 +814,10 @@ public class APIClient {
                 CreatedAPI createdAPI = {body: check convertK8sAPItoAPI(deployAPIToK8sResult, false)};
                 return createdAPI;
             } else {
-                BadRequestError badRequest = {body: {code: 90913, message: "Service from " + serviceKey + " not found."}};
-                return badRequest;
+                return e909004(serviceKey);
             }
         } on fail var e {
-            commons:APKError apkError = error("Internal Server Error", e, message = "Internal Server Error", description = "Internal Server Error", code = 90912, statusCode = 500);
-            return apkError;
+            return e909022("Internal server error", e);
         }
     }
     private isolated function constructServiceURL(Service 'service) returns string {
@@ -883,8 +856,7 @@ public class APIClient {
                 return e;
             }
             log:printError("Internal Error occured while deploying API", e);
-            commons:APKError internalError = error("Internal Error occured while deploying API", code = 909000, statusCode = 500, description = "Internal Error occured while deploying API", message = "Internal Error occured while deploying API");
-            return internalError;
+            return e909028();
         }
     }
     private isolated function deployEndpointCertificates(model:APIArtifact apiArtifact) returns error? {
@@ -937,15 +909,12 @@ public class APIClient {
                         model:StatusCause[] 'causes = details.'causes;
                         foreach model:StatusCause 'cause in 'causes {
                             if 'cause.'field == "spec.context" {
-                                commons:APKError badeRequestError = error("Invalid API Context", code = 90911, description = "API Context " + k8sAPI.spec.context + " Invalid", message = "Invalid API context", statusCode = 400);
-                                return badeRequestError;
+                                return e909015(k8sAPI.spec.context);
                             } else if 'cause.'field == "spec.apiDisplayName" {
-                                commons:APKError badeRequestError = error("Invalid API Name", code = 90911, description = "API Name " + k8sAPI.spec.apiDisplayName + " Invalid", message = "Invalid API Name", statusCode = 400);
-                                return badeRequestError;
+                                return e909016(k8sAPI.spec.apiDisplayName);
                             }
                         }
-                        commons:APKError badeRequestError = error("Invalid API Request", code = 90911, description = "Invalid API Request", message = "Invalid API Request", statusCode = 400);
-                        return badeRequestError;
+                        return e909017();
                     }
                     return self.handleK8sTimeout(statusResponse);
                 }
@@ -962,24 +931,19 @@ public class APIClient {
                     if details is model:StatusDetails {
                         model:StatusCause[] 'causes = details.'causes;
                         foreach model:StatusCause 'cause in 'causes {
-                            if 'cause.'field == "spec.context" {
-                                commons:APKError badRequestError = error("Invalid API Context", code = 90911, description = "API Context " + k8sAPI.spec.context + " Invalid", message = "Invalid API context", statusCode = 400);
-                                return badRequestError;
+                            if 'cause.'field == "spec.context" {       
+                                return e909015(k8sAPI.spec.context);
                             } else if 'cause.'field == "spec.apiDisplayName" {
-                                commons:APKError badRequestError = error("Invalid API Name", code = 90911, description = "API Name " + k8sAPI.spec.apiDisplayName + " Invalid", message = "Invalid API Name", statusCode = 400);
-                                return badRequestError;
+                                return e909016(k8sAPI.spec.apiDisplayName);
                             }
                         }
-                        commons:APKError badRequestError = error("Invalid API Request", code = 90911, description = "Invalid API Request", message = "Invalid API Request", statusCode = 400);
-                        return badRequestError;
-
+                        return e909017();
                     }
                     return self.handleK8sTimeout(statusResponse);
                 }
             }
         } else {
-            commons:APKError badRequestError = error("Internal Error occured", code = 909000, message = "Internal Error occured", description = "Internal Error occured", statusCode = 500);
-            return badRequestError;
+            return e909022("Internal error occured", e = error("Internal error occured"));
         }
     }
     private isolated function deployRuntimeAPI(model:APIArtifact apiArtifact) returns error? {
@@ -994,12 +958,12 @@ public class APIClient {
                 model:Status statusResponse = check responsePayLoad.cloneWithType(model:Status);
                 model:StatusDetails? details = statusResponse.details;
                 if details is model:StatusDetails {
-                    return error("Invalid API Request", code = 90911, description = "Invalid API Request", message = "Invalid API Request", statusCode = 400);
+                    return e909017();
                 }
                 return self.handleK8sTimeout(statusResponse);
             }
         } else {
-            return error("Internal Error occured", code = 909000, message = "Internal Error occured", description = "Internal Error occured", statusCode = 500);
+            return e909022("Internal error occured", e = error("Internal error occured"));
         }
     }
     private isolated function deployHttpRoutes(model:Httproute[] httproutes) returns error? {
@@ -1157,7 +1121,7 @@ public class APIClient {
             }
         } on fail var e {
             log:printError("Error occured deleting rate limit policy", e);
-            return error("Error occured deleting rate limit policy", message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured deleting rate limit policy", e);
         }
     }
 
@@ -1431,7 +1395,7 @@ public class APIClient {
             }
         } on fail var e {
             log:printError("Internal Error occured", e);
-            return error("Internal Error occured", code = 909000, message = "Internal Error occured", description = "Internal Error occured", statusCode = 500);
+            return e909022("Internal Error occured", e);
         }
     }
 
@@ -1647,7 +1611,7 @@ public class APIClient {
         }
     }
 
-    public isolated function generateAPIKey(string apiId, commons:Organization organization) returns http:Ok|BadRequestError|NotFoundError|InternalServerErrorError {
+    public isolated function generateAPIKey(string apiId, commons:Organization organization) returns http:Ok|APIKey|commons:APKError {
         model:API? api = getAPI(apiId, organization);
         if api is model:API {
             InternalTokenGenerator tokenGenerator = new ();
@@ -1658,12 +1622,10 @@ public class APIClient {
                 return okResponse;
             } else {
                 log:printError("Error while Genereting token for API : " + apiId, generatedToken);
-                InternalServerErrorError internalError = {body: {code: 90911, message: "Error while Generating Token"}};
-                return internalError;
+                return e909018();
             }
         } else {
-            NotFoundError notfound = {body: {code: 909100, message: apiId + "not found."}};
-            return notfound;
+            return e909001(apiId);
         }
     }
 
@@ -1758,9 +1720,8 @@ public class APIClient {
             return;
         } on fail var e {
             log:printError("Error occured deleting servicemapping", e);
-            return error("Error occured deleting servicemapping", message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured deleting servicemapping", e);
         }
-
     }
 
     public isolated function validateDefinition(http:Request message, boolean returnContent) returns InternalServerErrorError|BadRequestError|http:Ok|commons:APKError {
@@ -2174,7 +2135,7 @@ public class APIClient {
         return defaultOpenApiDefinition;
     }
 
-    public isolated function validateAPIExistence(string query, commons:Organization organization) returns NotFoundError|BadRequestError|http:Ok {
+    public isolated function validateAPIExistence(string query, commons:Organization organization) returns commons:APKError|http:Ok {
         int? indexOfColon = query.indexOf(":", 0);
         boolean exist = false;
         if indexOfColon is int && indexOfColon > 0 {
@@ -2185,8 +2146,7 @@ public class APIClient {
             } else if keyWord == "context" {
                 exist = self.validateContext(keyWordValue, organization);
             } else {
-                BadRequestError badRequest = {body: {code: 90912, message: "Invalid KeyWord " + keyWord}};
-                return badRequest;
+                return e909019(keyWord);
             }
         } else {
             // Consider full string as name;
@@ -2196,8 +2156,7 @@ public class APIClient {
             http:Ok ok = {};
             return ok;
         } else {
-            NotFoundError notFound = {body: {code: 900914, message: "context/name doesn't exist"}};
-            return notFound;
+            return e909002();
         }
     }
 
@@ -2276,17 +2235,14 @@ public class APIClient {
         boolean typeAvailable = 'type.length() > 0;
         string[] ALLOWED_API_DEFINITION_TYPES = ["REST", "GRAPHQL", "ASYNC"];
         if !typeAvailable {
-            BadRequestError badRequest = {body: {code: 90914, message: "type field unavailable"}};
-            return badRequest;
+            return e909005();
         }
         if (ALLOWED_API_DEFINITION_TYPES.indexOf('type) is ()) {
-            BadRequestError badRequest = {body: {code: 900912, message: "unsupported API type"}};
-            return badRequest.clone();
+            return e909006();
         }
         if url is string {
             if (fileAvailable || inlineApiDefinitionAvailable) {
-                BadRequestError badRequest = {body: {code: 90914, message: "multiple fields of url, file, inlineAPIDefinition given"}};
-                return badRequest;
+                return e909007();
             }
             string|error retrieveDefinitionFromUrlResult = self.retrieveDefinitionFromUrl(url);
             if retrieveDefinitionFromUrlResult is string {
@@ -2298,19 +2254,16 @@ public class APIClient {
             }
         } else if fileName is string && content is byte[] {
             if (urlAvailble || inlineApiDefinitionAvailable) {
-                BadRequestError badRequest = {body: {code: 90914, message: "multiple fields of url, file, inlineAPIDefinition given"}};
-                return badRequest;
+                return e909007();
             }
             validationResponse = runtimeUtil:RuntimeAPICommonUtil_validateOpenAPIDefinition('type, <byte[]>content, "", <string>fileName, true);
         } else if inlineAPIDefinition is string {
             if (fileAvailable || urlAvailble) {
-                BadRequestError badRequest = {body: {code: 90914, message: "multiple fields of url, file, inlineAPIDefinition given"}};
-                return badRequest;
+                return e909007();
             }
             validationResponse = runtimeUtil:RuntimeAPICommonUtil_validateOpenAPIDefinition('type, <byte[]>[], <string>inlineAPIDefinition, "", true);
         } else {
-            BadRequestError badRequest = {body: {code: 90914, message: "atleast one of the field required"}};
-            return badRequest;
+            return e909008();
         }
         return validationResponse;
     }
@@ -2343,16 +2296,13 @@ public class APIClient {
             }
         }
         if 'type is () {
-            BadRequestError badRequest = {body: {code: 90914, message: "type field unavailable"}};
-            return badRequest;
+            return e909005();
         }
         if url is () && fileName is () && inlineAPIDefinition is () && fileContent is () {
-            BadRequestError badRequest = {body: {code: 90914, message: "atleast one of the field required (file,inlineApiDefinition,url)."}};
-            return badRequest;
+            return e909008();
         }
         if additionalProperties is () || additionalProperties.length() == 0 {
-            BadRequestError badRequest = {body: {code: 90914, message: "additionalProperties not provided."}};
-            return badRequest;
+            return e909009();
         }
         json apiObject = check value:fromJsonString(additionalProperties);
         API api = check apiObject.cloneWithType(API);
@@ -2407,8 +2357,8 @@ public class APIClient {
             if e is commons:APKError {
                 return e;
             }
-            log:printError("Internal Error occured", e);
-            return error("Internal Error occured", code = 909000, message = "Internal Error occured", description = "Internal Error occured", statusCode = 500);
+            log:printError("Internal error occured", e);
+            return e909022("Internal error occured", e);
         }
     }
 
@@ -2924,8 +2874,7 @@ public class APIClient {
                 return apkError;
             }
         } else {
-            BadRequestError badRequest = {body: {code: 90912, message: "apiId not found in request."}};
-            return badRequest;
+            return e909003();
         }
     }
 
@@ -2992,22 +2941,20 @@ public class APIClient {
                 APIOperations[]? operations = payload.operations;
                 if operations is APIOperations[] {
                     if operations.length() == 0 {
-                        BadRequestError badRequestError = {body: {code: 90912, message: "Atleast one operation need to specified"}};
-                        return badRequestError;
+                        return e909021();
                     }
                     // Validating operation policies.
-                    BadRequestError|() badRequestError = self.validateOperationPolicies(api.apiPolicies, operations, organization);
-                    if (badRequestError is BadRequestError) {
-                        return badRequestError;
+                    commons:APKError|() apkError = self.validateOperationPolicies(api.apiPolicies, operations, organization);
+                    if (apkError is commons:APKError) {
+                        return apkError;
                     }
                     // Validating rate limit.
-                    BadRequestError|() invalidRateLimitError = self.validateRateLimit(api.apiRateLimit, operations);
-                    if (invalidRateLimitError is BadRequestError) {
+                    commons:APKError|() invalidRateLimitError = self.validateRateLimit(api.apiRateLimit, operations);
+                    if (invalidRateLimitError is commons:APKError) {
                         return invalidRateLimitError;
                     }
                 } else {
-                    BadRequestError badRequestError = {body: {code: 90912, message: "Atleast one operation need to specified"}};
-                    return badRequestError;
+                    return e909021();
                 }
                 if endpoint is model:Endpoint {
                     _ = check self.setHttpRoute(apiArtifact, payload, endpoint, uniqueId, PRODUCTION_TYPE, organization);
@@ -3042,8 +2989,8 @@ public class APIClient {
             if e is commons:APKError {
                 return e;
             }
-            log:printError("Internal Error occured", e);
-            return error("Internal Error occured", code = 909000, message = "Internal Error occured", description = "Internal Error occured", statusCode = 500);
+            log:printError("Internal error occured", e);
+            return e909022("Internal error occured", e);
         }
     }
 
@@ -3142,7 +3089,7 @@ public class APIClient {
         }
     }
 
-    private isolated function filterMediationPoliciesBasedOnQuery(MediationPolicy[] mediationPolicyList, string query, int 'limit, int offset, string sortBy, string sortOrder) returns MediationPolicyList|BadRequestError {
+    private isolated function filterMediationPoliciesBasedOnQuery(MediationPolicy[] mediationPolicyList, string query, int 'limit, int offset, string sortBy, string sortOrder) returns MediationPolicyList|commons:APKError {
         MediationPolicy[] filteredList = [];
         if query.length() > 0 {
             int? semiCollonIndex = string:indexOf(query, ":", 0);
@@ -3163,8 +3110,7 @@ public class APIClient {
                         }
                     }
                 } else {
-                    BadRequestError badRequest = {body: {code: 90912, message: "Invalid KeyWord " + keyWord}};
-                    return badRequest;
+                    return e909019(keyWord);
                 }
             } else {
                 string keyWordValue = query + "|\\w+" + query + "\\w+" + "|" + query + "\\w+" + "|\\w+" + query;
@@ -3182,7 +3128,7 @@ public class APIClient {
         return self.filterMediationPolicies(filteredList, 'limit, offset, sortBy, sortOrder);
     }
 
-    private isolated function filterMediationPolicies(MediationPolicy[] mediationPolicyList, int 'limit, int offset, string sortBy, string sortOrder) returns MediationPolicyList|BadRequestError {
+    private isolated function filterMediationPolicies(MediationPolicy[] mediationPolicyList, int 'limit, int offset, string sortBy, string sortOrder) returns MediationPolicyList|commons:APKError {
         MediationPolicy[] clonedMediationPolicyList = mediationPolicyList.clone();
         MediationPolicy[] sortedMediationPolicies = [];
         if sortBy == SORT_BY_POLICY_NAME && sortOrder == SORT_ORDER_ASC {
@@ -3202,8 +3148,7 @@ public class APIClient {
                 order by mediationPolicy.id descending
                 select mediationPolicy;
         } else {
-            BadRequestError badRequest = {body: {code: 90912, message: "Invalid Sort By/Sort Order Value "}};
-            return badRequest;
+            return e909020();
         }
         MediationPolicy[] limitSet = [];
         if sortedMediationPolicies.length() > offset {
@@ -3222,7 +3167,7 @@ public class APIClient {
     # + id - Policy Id
     # + organization - Organization
     # + return - Return a Mediation Policy.
-    public isolated function getMediationPolicyById(string id, commons:Organization organization) returns MediationPolicy|NotFoundError|commons:APKError {
+    public isolated function getMediationPolicyById(string id, commons:Organization organization) returns MediationPolicy|commons:APKError {
         boolean mediationPolicyIDAvailable = id.length() > 0 ? true : false;
         if (mediationPolicyIDAvailable && string:length(id.toString()) > 0)
         {
@@ -3234,11 +3179,10 @@ public class APIClient {
                     }
                 }
             } on fail var e {
-                return error("Error while retrieving Mediation policy", e, message = "Error while retrieving Mediation policy", description = "Error while retrieving Mediation policy", code = 909000, statusCode = 500);
+                return e909029(e);
             }
         }
-        NotFoundError notfound = {body: {code: 909100, message: id + " not found."}};
-        return notfound;
+        return e909001(id);
     }
 
     # This returns list of Mediation Policies.
@@ -3256,7 +3200,7 @@ public class APIClient {
             MediationPolicy policyItem = convertPolicyModeltoPolicy(mediationPolicy);
             mediationPolicyList.push(policyItem);
         } on fail var e {
-            return error("Error occured while getting Mediation policy list", e, message = "Internal Server Error", code = 909000, description = "Internal Server Error", statusCode = 500);
+            return e909022("Error occured while getting Mediation policy list", e);
         }
         if query is string && query.toString().trim().length() > 0 {
             return self.filterMediationPoliciesBasedOnQuery(mediationPolicyList, query, 'limit, offset, sortBy, sortOrder);
@@ -3265,15 +3209,14 @@ public class APIClient {
         }
     }
 
-    public isolated function getCertificates(string apiId, string? endpoint, int 'limit, int offset, commons:Organization organization) returns Certificates|BadRequestError|NotFoundError|InternalServerErrorError|commons:APKError {
+    public isolated function getCertificates(string apiId, string? endpoint, int 'limit, int offset, commons:Organization organization) returns Certificates|BadRequestError|InternalServerErrorError|commons:APKError {
         model:API? api = getAPI(apiId, organization);
         if api is model:API {
             model:Certificate[] certificates = check getCertificatesForAPIId(api.clone(), organization.clone());
             [model:Certificate[], int] filtredCerts = self.filterCertificatesBasedOnQuery(certificates.clone(), endpoint, 'limit, offset);
             return {certificates: self.transformCertificateToCertMetadata(filtredCerts[0].cloneReadOnly()), count: filtredCerts[0].length(), pagination: {total: filtredCerts[1], 'limit: 'limit, offset: offset}};
         } else {
-            NotFoundError notfound = {body: {code: 909100, message: apiId + " not found."}};
-            return notfound.clone();
+            return e909001(apiId);
         }
     }
 
@@ -3321,18 +3264,16 @@ public class APIClient {
                     OkCertMetadata okCertMetaData = {body: {certificateId: deployedConfigMap.metadata.uid, endpoint: endpointCertificate.host}};
                     return okCertMetaData;
                 } else {
-                    BadRequestError badRequest = {body: {code: 909100, message: "Certificate is expired."}};
-                    return badRequest;
+                    return e909030();
                 }
             } else {
-                NotFoundError notfound = {body: {code: 909100, message: apiId + " not found."}};
-                return notfound;
+                return e909001(apiId);
             }
         } on fail var e {
             if e is commons:APKError {
                 return e;
             } else {
-                return error("Error while adding certificate", e, message = "Error while adding certificate", description = "Error while adding certificate", code = 909000, statusCode = 500);
+                return e909031(e);
             }
         }
     }
@@ -3357,17 +3298,16 @@ public class APIClient {
                 }
             }
             if (host is () || certificateFileName is () || certificateFileContent is ()) {
-
-                return error("host/certificte is empty in payload.", message = "host/certificte is empty in payload.", description = "host/certificte is empty in payload.", code = 909000, statusCode = 500);
+                return e909032();
             } else {
                 return {host: host, fileName: certificateFileName, certificateFileContent: certificateFileContent};
             }
         } on fail var e {
-            return error("Error while retrieving endpoint certificate request", e, message = "Error while retrieving endpoint certificate request", description = "Error while retrieving endpoint certificate request", code = 909000, statusCode = 500);
+            return e909033(e);
         }
     }
 
-    public isolated function getEndpointCertificateByID(string apiId, string certificateId, commons:Organization organization) returns CertificateInfo|BadRequestError|NotFoundError|InternalServerErrorError|commons:APKError {
+    public isolated function getEndpointCertificateByID(string apiId, string certificateId, commons:Organization organization) returns CertificateInfo|BadRequestError|InternalServerErrorError|commons:APKError {
         do {
             model:API? api = getAPI(apiId, organization);
             if api is model:API {
@@ -3385,19 +3325,18 @@ public class APIClient {
                 };
                 return certificateInfo;
             } else {
-                NotFoundError notfound = {body: {code: 909100, message: apiId + " not found."}};
-                return notfound;
+                return e909001(apiId);
             }
         } on fail var e {
             if e is commons:APKError {
                 return e;
             } else {
-                return error("Error while getting endpoint certificate by id", e, message = "Error while getting endpoint certificate by id", description = "Error while getting endpoint certificate by id", code = 909000, statusCode = 500);
+                return e909037(e);
             }
         }
     }
 
-    public isolated function updateEndpointCertificate(string apiId, string certificateId, http:Request request, commons:Organization organization) returns CertMetadata|BadRequestError|NotFoundError|InternalServerErrorError|commons:APKError {
+    public isolated function updateEndpointCertificate(string apiId, string certificateId, http:Request request, commons:Organization organization) returns CertMetadata|BadRequestError|InternalServerErrorError|commons:APKError {
         do {
             model:API? api = getAPI(apiId, organization);
             if api is model:API {
@@ -3412,23 +3351,20 @@ public class APIClient {
                         CertMetadata okCertMetaData = {certificateId: deployedConfigMap.metadata.uid, endpoint: endpointCertificate.host};
                         return okCertMetaData;
                     } else {
-                        BadRequestError badRequest = {body: {code: 909100, message: "Certificate is expired."}};
-                        return badRequest;
+                        return e909030();
                     }
                 } else {
-                    NotFoundError notfound = {body: {code: 909100, message: "Certificate " + certificateId + " not found."}};
-                    return notfound;
+                    return e909034(certificateId);
                 }
             } else {
-                NotFoundError notfound = {body: {code: 909100, message: apiId + " not found."}};
-                return notfound;
+                return e909001(apiId);
             }
         }
         on fail var e {
             if e is commons:APKError {
                 return e;
             } else {
-                return error("Error while updating endpoint certificate", e, message = "Error while updating endpoint certificate", description = "Error while updating endpoint certificate", code = 909000, statusCode = 500);
+                return e909038(e);
             }
         }
     }
@@ -3443,24 +3379,22 @@ public class APIClient {
                     http:Ok okResponse = {body: "Certificate deleted successfully"};
                     return okResponse;
                 } else {
-                    NotFoundError notfound = {body: {code: 909100, message: "Certificate " + certificateId + " not found."}};
-                    return notfound;
+                    return e909034(certificateId);
                 }
             } else {
-                NotFoundError notfound = {body: {code: 909100, message: apiId + " not found."}};
-                return notfound;
+                return e909001(apiId);
             }
         }
         on fail var e {
             if e is commons:APKError {
                 return e;
             } else {
-                return error("Error while deleting endpoint certificate", e, message = "Error while deleting endpoint certificate", description = "Error while deleting endpoint certificate", code = 909000, statusCode = 500);
+                return e909035(e);
             }
         }
     }
 
-    public isolated function getEndpointCertificateContent(string apiId, string certificateId, commons:Organization organization) returns http:Response|BadRequestError|NotFoundError|InternalServerErrorError|commons:APKError {
+    public isolated function getEndpointCertificateContent(string apiId, string certificateId, commons:Organization organization) returns http:Response|BadRequestError|InternalServerErrorError|commons:APKError {
         do {
             model:API? api = getAPI(apiId, organization);
             if api is model:API {
@@ -3474,15 +3408,14 @@ public class APIClient {
                 response.statusCode = 200;
                 return response;
             } else {
-                NotFoundError notfound = {body: {code: 909100, message: apiId + " not found."}};
-                return notfound;
+                return e909001(apiId);
             }
         }
         on fail var e {
             if e is commons:APKError {
                 return e;
             } else {
-                return error("Error while getting endpoint certificate content", e, message = "Error while getting endpoint certificate content", description = "Error while getting endpoint certificate content", code = 909000, statusCode = 500);
+                return e909036(e);
             }
         }
     }
