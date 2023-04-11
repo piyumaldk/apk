@@ -363,8 +363,7 @@ public class APIClient {
         string previousAPIList = "";
         string nextAPIList = "";
         if offset > sortedAPIS.length() {
-            BadRequestError badRequest = {body: {code: 90912, message: "Invalid Value for Offset"}};
-            return badRequest;
+            return e909039();
         } else if offset > 'limit {
             previousAPIList = self.getPaginatedURL('limit, offset - 'limit, sortBy, sortOrder, query);
         } else if offset > 0 {
@@ -1612,7 +1611,7 @@ public class APIClient {
         }
     }
 
-    public isolated function generateAPIKey(string apiId, commons:Organization organization) returns APIKey|commons:APKError {
+    public isolated function generateAPIKey(string apiId, commons:Organization organization) returns http:Ok|APIKey|commons:APKError {
         model:API? api = getAPI(apiId, organization);
         if api is model:API {
             InternalTokenGenerator tokenGenerator = new ();
